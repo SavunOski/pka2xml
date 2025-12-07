@@ -1,17 +1,32 @@
-name: C/C++ CI
+  - name: Setup vcpkg
+    run: |
+      git clone https://github.com/microsoft/vcpkg.git C:/vcpkg
+      C:/vcpkg/bootstrap-vcpkg.bat
 
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+  - name: Install dependencies via vcpkg
+    run: |
+      C:/vcpkg/vcpkg.exe install cryptopp:x64-windows re2:x64-windows zlib:x64-windows
+      REM For a static exe, use x64-windows-static triplets:
+      REM C:/vcpkg/vcpkg.exe install cryptopp:x64-windows-static re2:x64-windows-static zlib:x64-windows-static
 
-jobs:
-  build:
+  - name: Configure CMake
+    run: |
+      cmake -S . -B build -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
 
-    runs-on: windows-latest
+  - name: Build (Release)
+    run: cmake --build build --config Release --parallel
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: make
-      run: make static-install
+  - name: Find produced exe
+    run: |
+      if exist build\Release\pka2xml.exe (dir build\Release)
+      if exist build\pka2xml.exe (dir build)
+      if exist pka2xml.exe (dir .)
+
+  - name: Upload pka2xml.exe artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: pka2xml-windows
+      path: |
+        build\Release\pka2xml.exe
+        build\pka2xml.exe
+        pka2xml.exe
